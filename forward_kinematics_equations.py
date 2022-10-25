@@ -1,72 +1,63 @@
+# importing sympy package for making symbols, substitutions, matrix operations and its other features 
 from sympy import *
 from sympy import cos, sin
 
-a,theta,alpha,d = symbols('a theta alpha d')
-x0,y0,z0,theta1,theta2,theta3,l1,l2,l3= symbols('x0,y0,z0,theta1,theta2,theta3,l1,l2,l3')
+# making some symbols 
+a,alpha,d,theta = symbols('a alpha d theta') # used in homogeneous transformation matrix
+# symbols to be used in final fk equations
+x_n,y_n,z_n,theta1,theta2,theta3= symbols('x_n,y_n,z_n,theta1,theta2,theta3')
+l1,l2,l3= symbols('l1,l2,l3')
 
-# T=Matrix([[cos(theta), -sin(theta), 0, a], 
-#             [sin(theta)*cos(alpha), cos(alpha)*cos(theta), -sin(alpha), -d*sin(alpha)], 
-#             [sin(alpha)*sin(theta), sin(alpha)*cos(theta), cos(alpha), d*cos(alpha)], 
-#             [0, 0, 0, 1]])
+# Homogeneous Transformation Matrix based on DH parameters (a,alpha,d,theta) 
 T=Matrix([[cos(theta), -sin(theta)*cos(alpha), sin(theta)*sin(alpha), a*cos(theta)], 
             [sin(theta), cos(alpha)*cos(theta), -sin(alpha)*cos(theta), a*sin(theta)], 
             [0, sin(alpha), cos(alpha), d], 
             [0, 0, 0, 1]])
 
-# for i in range(1,n+1):
-#     # inp_d.append(int(input("Enter the d (link offset) for link "+ str(i) +":  ")))
-#     g=input("Enter the theta (joint angle) for link "+str(i)+" in degrees:  ")
-#     inp_theta.append(g)
-
 def CalcTransformation():
-    TransMatrix=eye(4)
+    TransMatrix=eye(4)  # creating an identity matrix of size 4
     for i in range(n):
+        # matrix for transformation of frame i+1 with respect to frame i
         Mat=T.subs([(a,inp_a[i]), (alpha, inp_alpha[i]), (d, inp_d[i]), (theta, inp_theta[i])])
-        HomoMat.append(Mat)
-        # pretty_print(Mat)
-        # TransMatrix = Mat*TransMatrix
-        TransMatrix = TransMatrix*Mat
-        # TransMatrix = TransMatrix*(Mat.inv(method="LU"))
+        HomoMat.append(Mat)  # HomoMat to store all the transformation matrices for each transformations
+        TransMatrix = TransMatrix*Mat  # calculating the transformation of (i+1)th frame with reaspect to frame 0
     return TransMatrix
     
-def GenerateEquations(pos_x=0,pos_y=0,pos_z=0):
-    e=Matrix(4,1,["pos_x","pos_y","pos_z","1"])
-    f=TransformationMat[:]
-    # print(e)
-    # print(f)
-    x1=''
-    x=[]
-    for i in range(12):
-        x1=x1+str(f[i])+" * "+str(e[int(i%4)])+" + "
+# function to generate equations with parameters representing coods in frame n which are mapped to frame 0
+def GenerateEquations(pos_x,pos_y,pos_z):
+    x1,x=0,[]
+    e=Matrix(4,1,[pos_x,pos_y,pos_z,1]) # making a matrix of 4*1 having symbols and values
+    f=TransformationMat[:] # converting sympy matrix into a list
+    for i in range(12): # since first three rows are of importance in 4*4 matrix
+        x1=x1+f[i]*e[int(i%4)]
         if(i%4==3):
-            x.append(x1[0:-2])
-            x1=''
+            x.append(x1) # extracting the equations and appending into x[]
+            x1=0
     return x
 
 if __name__ == "__main__":
     
-    inp_theta=[theta1,theta2,theta3]
-    inp_a=[l1,l2,l3]
-    inp_alpha=[0,0,0]
-    inp_d=[0,0,0]
-    HomoMat=[]
+    # values are taken accordingly for our planar robotic arm in terms of symbols (can be modified for some other robots)
+    n=3  # no. of links
+    inp_theta=[theta1,theta2,theta3] # joint angles
+    inp_a=[l1,l2,l3] # link lengths
+    inp_alpha=[0,0,0] # link twists
+    inp_d=[0,0,0] # link offsets
+    HomoMat=[] # for storing transformation matrices
 
-    n=int(input("Enter the number of links:\n"))
-    print("\n Generalised Transformation matrix is \n")
+    print("\n\n Generalised Transformation matrix is \n")
     pretty_print(T)
-    # pretty_print(HomoMat[0])
-    # pretty_print(HomoMat[1])
-    # pretty_print(HomoMat[2])
-    TransformationMat=CalcTransformation()
-    # pretty_print(TransformationMat)
-    TransformationMat=trigsimp(TransformationMat)
-    print("\n\n Transformation matrix for frame 3 with respect to frame 0 is \n\n")
+
+    TransformationMat=CalcTransformation() # calculating the transformation matrix
+    TransformationMat=trigsimp(TransformationMat) # simplifying the trignometric expressions using sympy
+    print("\n\n\n Transformation matrix for frame 3 with respect to frame 0 is \n")
     pretty_print(TransformationMat)
+
+    j=GenerateEquations(x_n,y_n,z_n)
+    print("\n\n Generalised Equations are: ")
+    print("x_equation = ",j[0],"\ny_equation = ",j[1],"\nz_equation = ",j[2],"\n")
+
+    eqn=Matrix(3,1,j)
+    print("\n Symbolic representation of transformation equations are:\n")
+    pretty_print(eqn)
     print("\n")
-    j=GenerateEquations()
-    print("\n Generalised Equations are\n")
-    print("x_equation = ",j[0])
-    print("y_equation = ",j[1])
-    print("z_equation = ",j[2])
-    # pretty_print(j[0])
-    # print("\n")
